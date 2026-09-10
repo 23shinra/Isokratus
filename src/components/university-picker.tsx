@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { MagnifyingGlass, Buildings } from "@phosphor-icons/react";
+import { MagnifyingGlass, Buildings, ChatTeardropText } from "@phosphor-icons/react";
 import { Field, Input } from "@/components/ui";
+import { UniRequestDialog } from "@/components/uni-request-dialog";
 import {
   searchUniversities,
   type University,
 } from "@/lib/universities";
 import { cn } from "@/lib/cn";
+import { useT } from "@/lib/use-i18n";
 
 type Props = {
   value: University | null;
@@ -15,11 +17,13 @@ type Props = {
 };
 
 export function UniversityPicker({ value, onChange }: Props) {
+  const { t } = useT();
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState(value?.name ?? "");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
+  const [requestOpen, setRequestOpen] = useState(false);
 
   const results = useMemo(() => searchUniversities(query, 8), [query]);
 
@@ -41,9 +45,17 @@ export function UniversityPicker({ value, onChange }: Props) {
     setOpen(false);
   }
 
+  function openRequest() {
+    setOpen(false);
+    setRequestOpen(true);
+  }
+
   return (
     <div ref={rootRef} className="relative">
-      <Field label="Университет" hint={value ? value.url.replace(/^https?:\/\//, "") : undefined}>
+      <Field
+        label={t("login_university")}
+        hint={value ? value.url.replace(/^https?:\/\//, "") : undefined}
+      >
         <div className="relative">
           <MagnifyingGlass
             size={16}
@@ -57,7 +69,7 @@ export function UniversityPicker({ value, onChange }: Props) {
             aria-controls={listId}
             aria-autocomplete="list"
             autoComplete="off"
-            placeholder="Начни вводить название вуза"
+            placeholder={t("login_search_placeholder")}
             className="pl-9"
             onFocus={() => setOpen(true)}
             onChange={(e) => {
@@ -93,10 +105,10 @@ export function UniversityPicker({ value, onChange }: Props) {
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-30 mt-2 max-h-64 w-full overflow-auto rounded-[10px] border border-line bg-[#12141a]/95 py-1 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-md"
+          className="ios-no-blur absolute z-30 mt-2 max-h-64 w-full overflow-auto rounded-[10px] border border-line bg-[var(--elevated)] py-1 shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
         >
           {results.length === 0 ? (
-            <li className="px-3 py-3 text-sm text-muted">Ничего не найдено</li>
+            <li className="px-3 py-3 text-sm text-muted">{t("login_uni_empty")}</li>
           ) : (
             results.map((uni, index) => {
               const selected = value?.id === uni.id;
@@ -107,7 +119,9 @@ export function UniversityPicker({ value, onChange }: Props) {
                     type="button"
                     className={cn(
                       "flex w-full items-start gap-3 px-3 py-2.5 text-left transition",
-                      highlighted || selected ? "bg-white/[0.06]" : "hover:bg-white/[0.04]",
+                      highlighted || selected
+                        ? "bg-white/[0.06]"
+                        : "hover:bg-white/[0.04]",
                     )}
                     onMouseEnter={() => setActive(index)}
                     onClick={() => pick(uni)}
@@ -128,8 +142,31 @@ export function UniversityPicker({ value, onChange }: Props) {
               );
             })
           )}
+
+          <li className="mt-1 border-t border-white/[0.06] pt-1" role="option">
+            <button
+              type="button"
+              className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition hover:bg-white/[0.04]"
+              onClick={openRequest}
+            >
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-pale-yellow/40 text-pale-yellow-ink">
+                <ChatTeardropText size={16} weight="bold" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-ink">
+                  {t("login_uni_request_cta")}
+                </span>
+              </span>
+            </button>
+          </li>
         </ul>
       ) : null}
+
+      <UniRequestDialog
+        open={requestOpen}
+        initialName={query && !value ? query : ""}
+        onClose={() => setRequestOpen(false)}
+      />
     </div>
   );
 }

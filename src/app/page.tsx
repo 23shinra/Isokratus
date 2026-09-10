@@ -2,15 +2,17 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/lib/auth-store";
+import { readLastTab, useAuthHydrated, useAuthStore } from "@/lib/auth-store";
 
 export default function HomePage() {
   const router = useRouter();
+  const hydrated = useAuthHydrated();
   const session = useAuthStore((s) => s.session);
 
   useEffect(() => {
-    router.replace(session ? "/schedule" : "/login");
-  }, [session, router]);
+    if (!hydrated) return;
+    router.replace(session ? readLastTab() : "/login");
+  }, [hydrated, session, router]);
 
   return (
     <main className="flex min-h-[100dvh] items-center justify-center">
